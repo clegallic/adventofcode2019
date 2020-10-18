@@ -13,6 +13,7 @@ class LongCodeProgram(private var program: LongArray) {
     var relativeBase = 0
     var endReached = false
     var debug = true
+    var clearOutputAfterRun = false
 
     private var halted = false
     private var currentPosition = 0
@@ -22,6 +23,7 @@ class LongCodeProgram(private var program: LongArray) {
     }
 
     fun run(): LongCodeProgramOutput {
+        if(clearOutputAfterRun) outputs.clear()
         if(debug) println("Lancement depuis la position $currentPosition avec input = ${inputs.toLongArray().contentToString()}")
         halted = false
         while (currentPosition < program.size && !endReached && !halted) {
@@ -44,7 +46,7 @@ class LongCodeProgram(private var program: LongArray) {
     }
 
     private fun ensureProgramSize(position: Int){
-        if(position > program.size){
+        if(position > program.size - 1){
             program = program.plus(LongArray(position - program.size + 2) { 0 })
         }
     }
