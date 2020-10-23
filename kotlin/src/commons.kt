@@ -1,0 +1,1 @@
+data class Position2D(var x:Long, var y: Long)

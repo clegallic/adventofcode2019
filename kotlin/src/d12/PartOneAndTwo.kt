@@ -157,7 +157,6 @@ class PartOneAndTwo(val input: String) {
     private fun findAxisPeriods() {
         var step = 0
         var allFound = false
-        //while (periodX != 0 && periodY != 0 && periodZ != 0){
         while (!allFound) {
             storeMoonsPosition()
             simulateMotion()
