@@ -22,6 +22,10 @@ class LongCodeProgram(private var program: LongArray) {
         this.inputs.add(input)
     }
 
+    fun setInputs(inputs: LongArray){
+        this.inputs = inputs.toMutableList()
+    }
+
     fun run(): LongCodeProgramOutput {
         if(clearOutputAfterRun) outputs.clear()
         if(debug) println("Lancement depuis la position $currentPosition avec input = ${inputs.toLongArray().contentToString()}")
