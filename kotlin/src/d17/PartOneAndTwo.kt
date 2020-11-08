@@ -3,6 +3,7 @@ package d17
 import Logger
 import LongCodeProgram
 import Position2D
+import padTwoDigits
 import readInputCommaSeparatedFileAsLong
 import java.util.*
 
@@ -52,10 +53,6 @@ const val SHARP_CHAR = '#'
 const val UP_CHAR = '^'
 const val COMMA = ','.toLong()
 const val MAX_DEFINITION_CHARS = 20
-
-fun Int.padTwoDigits(): String {
-    return this.toString().padStart(2, '0')
-}
 
 fun displayCameraOutput(cameraOutput: List<List<Char>>, withAxis: Boolean = false) {
     if(withAxis) logger.debug(cameraOutput[0].foldIndexed("    ") { index, acc, c -> acc.plus(index.padTwoDigits()).plus(" ") })

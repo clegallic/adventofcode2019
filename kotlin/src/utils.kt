@@ -11,3 +11,7 @@ fun readInputCommaSeparatedFileAsLong(inputPath: String): LongArray{
 fun readInputStringFile(inputPath: String): String{
     return IntCodeProgram::class.java.getResource(inputPath).readText()
 }
+
+fun Int.padTwoDigits(): String {
+    return this.toString().padStart(2, '0')
+}
