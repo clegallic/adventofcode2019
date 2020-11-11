@@ -8,6 +8,29 @@ import kotlin.math.min
 
 val logger = Logger(false)
 
+fun main() {
+    for (i in 1..4) {
+        val sample = readInputStringFile("d18/sample$i.txt")
+        runPartOne(sample)
+    }
+    val input = readInputStringFile("d18/input.txt")
+    runPartOne(input)
+    val inputPartTwo = readInputStringFile("d18/inputPartTwo.txt")
+    runPartTwo(inputPartTwo)
+}
+
+fun runPartOne(input: String) {
+    val solver = MazeSolver(input)
+    val result = solver.solve()
+    println("Part one : the fewest steps necessary to collect all of the keys is $result\r\n${"-".repeat(70)}\n")
+}
+
+fun runPartTwo(input: String) {
+    val subMazes = splitMaze(input)
+    val result = subMazes.map { MazeSolver(it) }.fold(0) { acc, solver -> acc + solver.solve() }
+    println("Part two : the fewest steps necessary to collect all of the keys is $result")
+}
+
 enum class Orientation(val offset: Position2D) {
     DOWN(Position2D(0, 1)),
     RIGHT(Position2D(1, 0)),
@@ -32,6 +55,7 @@ open class MazeLocation(val position: Position2D, val type: MazeLocationType, va
     open fun display(): Char {
         return type.symbol
     }
+
     override fun toString(): String {
         return "$type"
     }
@@ -49,6 +73,7 @@ class KeyMazeLocation(val key: Key, position: Position2D) : MazeLocation(positio
     override fun display(): Char {
         return key.letter
     }
+
     override fun toString(): String {
         return "$type '${key.letter}'"
     }
@@ -58,6 +83,7 @@ class DoorMazeLocation(val door: Door, position: Position2D) : MazeLocation(posi
     override fun display(): Char {
         return door.letter
     }
+
     override fun toString(): String {
         return "$type '${door.letter}'"
     }
@@ -76,18 +102,13 @@ class MazeSolver(val input: String) {
 
     private lateinit var maze: Maze
 
-    fun solvePartOne(): Int {
+    fun solve(): Int {
         parseMaze()
         printMaze()
         analyzeMaze()
         val shortestPath = findShortestPath()
-        logger.info("The shortest path is $shortestPath")
+        logger.debug("The shortest path is $shortestPath")
         return shortestPath
-    }
-
-    private fun printMaze() {
-        println(maze.data[0].foldIndexed("   ") { index, acc, _ -> acc.plus(index.padTwoDigits()).plus(" ") })
-        println(maze.data.mapIndexed { index, it -> index.padTwoDigits() + " " + it.joinToString("  ") { mazeLocation -> mazeLocation.display().toString() } + "\r\n" }.joinToString(""))
     }
 
     private fun parseMaze() {
@@ -125,6 +146,11 @@ class MazeSolver(val input: String) {
         logger.debug("Maze parsed : ${maze.keys.size} keys found, ${maze.doors.size} doors found")
     }
 
+    private fun printMaze() {
+        println(maze.data[0].foldIndexed("   ") { index, acc, _ -> acc.plus(index.padTwoDigits()).plus(" ") })
+        println(maze.data.mapIndexed { index, it -> index.padTwoDigits() + " " + it.joinToString("  ") { mazeLocation -> mazeLocation.display().toString() } + "\r\n" }.joinToString(""))
+    }
+
     private fun analyzeMaze() {
         walk(maze.entrance!!, listOf(maze.entrance!!))
     }
@@ -144,7 +170,8 @@ class MazeSolver(val input: String) {
                 }
                 is DoorMazeLocation -> {
                     doors.add(l.door)
-                    keys.add(doorToKey(l.door)!!)
+                    val key = doorToKey(l.door)
+                    if (key != null) keys.add(key)
                     logger.debug("$l found at position : ${l.position}, ${previousLocations.size} from entrance")
                 }
                 else -> logger.debug("$l visited, ${locations.size} previous locations found")
@@ -155,12 +182,12 @@ class MazeSolver(val input: String) {
         }
     }
 
-    private fun walkableLocations(current: MazeLocation): List<MazeLocation> {
+    private fun walkableLocations(current: MazeLocation, skipVisited: Boolean = false): List<MazeLocation> {
         val walkable = arrayListOf<MazeLocation>()
         for (orientation in Orientation.values()) {
             val targetPosition = current.position.withOffset(orientation.offset)
-            val alreadyVisited = maze.locations[targetPosition]!!.visited
-            if (targetPosition.x >= 0 && targetPosition.y >= 0 && targetPosition.x < maze.width && targetPosition.y < maze.height && !alreadyVisited) {
+            if (targetPosition.x >= 0 && targetPosition.y >= 0 && targetPosition.x < maze.width && targetPosition.y < maze.height
+                    && (skipVisited || !maze.locations[targetPosition]!!.visited)) {
                 val targetLocation = maze.data[targetPosition.y.toInt()][targetPosition.x.toInt()]
                 if (targetLocation.type != MazeLocationType.WALL) {
                     walkable.add(targetLocation)
@@ -171,14 +198,14 @@ class MazeSolver(val input: String) {
     }
 
     private fun findShortestPath(): Int {
-        return minDistanceToCollectNextKeys(maze.entrance!!, maze.keys.values.toList())
+        return minDistanceToCollectKeys(maze.entrance!!, maze.keys.values.toList())
     }
 
     private data class CacheEntry(val location: MazeLocation, val nextKeys: List<Key>)
 
     private val minDistanceToCollectNextKeysCache = mutableMapOf<CacheEntry, Int>()
 
-    private fun minDistanceToCollectNextKeys(currentLocation: MazeLocation, keysToCollect: List<Key>): Int {
+    private fun minDistanceToCollectKeys(currentLocation: MazeLocation, keysToCollect: List<Key>): Int {
         if (keysToCollect.isEmpty()) {
             return 0
         }
@@ -188,7 +215,7 @@ class MazeSolver(val input: String) {
         }
         var minDistance = Int.MAX_VALUE
         reachableKeys(keysToCollect).forEach { reachableKey ->
-            val minDistanceToReachable = distance(currentLocation, reachableKey.location) + minDistanceToCollectNextKeys(reachableKey.location, keysToCollect - reachableKey)
+            val minDistanceToReachable = distance(currentLocation, reachableKey.location) + minDistanceToCollectKeys(reachableKey.location, keysToCollect - reachableKey)
             minDistance = min(minDistance, minDistanceToReachable)
         }
         minDistanceToCollectNextKeysCache[keyToNextKeys] = minDistance
@@ -209,7 +236,7 @@ class MazeSolver(val input: String) {
         return distanceCache[cacheKey]!!
     }
 
-    private fun computeDistance(from: MazeLocation, to: MazeLocation): Int{
+    private fun computeDistance(from: MazeLocation, to: MazeLocation): Int {
         if (from == to) {
             return 0
         }
@@ -220,10 +247,10 @@ class MazeSolver(val input: String) {
         seen[from] = dist
         while (queue.isNotEmpty()) {
             val current = queue.removeFirst()
-            for (orientation in Orientation.values()) {
-                val otherPosition = current.first.position.withOffset(orientation.offset)
-                val otherLocation = maze.data[otherPosition.y.toInt()][otherPosition.x.toInt()]
-                if (seen.containsKey(otherLocation) || otherLocation is WallMazeLocation) {
+            for (otherLocation in walkableLocations(current.first, true)) {
+                //val otherPosition = current.first.position.withOffset(orientation.offset)
+                //val otherLocation = maze.data[otherPosition.y.toInt()][otherPosition.x.toInt()]
+                if (seen.containsKey(otherLocation)) {
                     continue
                 }
                 val distT = current.second + 1
@@ -244,16 +271,26 @@ class MazeSolver(val input: String) {
 
 }
 
-fun runPartOne(input: String): Int {
-    val solver = MazeSolver(input)
-    return solver.solvePartOne()
-}
-
-fun main() {
-    for (i in 1..4) {
-        val sample = readInputStringFile("d18/sample$i.txt")
-        println(runPartOne(sample))
+fun splitMaze(input: String): List<String> {
+    var mazes = mutableListOf("", "", "", "")
+    val midMazeX = input.lines()[0].length / 2
+    val midMazeY = input.lines().size / 2
+    input.lines().forEachIndexed() { y, line ->
+        line.forEachIndexed() { x, c ->
+            when {
+                x <= midMazeX && y <= midMazeY -> mazes[0] = mazes[0].plus(c)
+                x > midMazeX && y <= midMazeY -> mazes[1] = mazes[1].plus(c)
+                x <= midMazeX && y > midMazeY -> mazes[2] = mazes[2].plus(c)
+                x > midMazeX && y > midMazeY -> mazes[3] = mazes[3].plus(c)
+            }
+        }
+        mazes = mazes.map { it.plus("\r\n") }.toMutableList()
     }
-    val input = readInputStringFile("d18/input.txt")
-    println(runPartOne(input))
+    val test = mazes.map { it.trim() }.map {
+        var o = it
+        it.filter { c -> c in 'A'..'Z' && it.indexOf(c.toLowerCase()) == -1 }
+                .forEach { c -> o = o.replace(c, '.') }
+        o
+    }
+    return test
 }
