@@ -12,7 +12,7 @@ class LongCodeProgram(private var program: LongArray) {
     var outputs = mutableListOf<Long>()
     var relativeBase = 0
     var endReached = false
-    var debug = true
+    var debug = false
     var clearOutputAfterRun = false
 
     private var halted = false
@@ -22,8 +22,9 @@ class LongCodeProgram(private var program: LongArray) {
         this.inputs.add(input)
     }
 
-    fun setInputs(inputs: LongArray){
+    fun setInputs(inputs: LongArray): LongCodeProgram{
         this.inputs = inputs.toMutableList()
+        return this
     }
 
     fun run(): LongCodeProgramOutput {
